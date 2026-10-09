@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.ProductMapper">
+
+    <insert id="insert" parameterType="Product" useGeneratedKeys="true" keyProperty="id">
+        insert into product (merchant_id, category_id, business_type, name, image, description, price, stock, sales, status, create_time, update_time)
+        values (#{merchantId}, #{categoryId}, #{businessType}, #{name}, #{image}, #{description}, #{price}, #{stock}, #{sales}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="Product">
+        update product
+        <set>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="businessType != null">business_type = #{businessType},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="image != null">image = #{image},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id} and merchant_id = #{merchantId}
+    </update>
+
+    <delete id="deleteById">
+        delete from product where id = #{id} and merchant_id = #{merchantId}
+    </delete>
+
+    <select id="getById" resultType="Product">
+        select * from product where id = #{id}
+    </select>
+
+    <select id="pageQuery" resultType="com.supermall.takeout.vo.ProductVO">
+        select p.*, c.name as category_name
+        from product p
+        left join category c on c.id = p.category_id
+        <where>
+            p.merchant_id = #{merchantId}
+            <if test="businessType != null">
+                and p.business_type = #{businessType}
+            </if>
+            <if test="name != null and name != ''">
+                and p.name like concat('%', #{name}, '%')
+            </if>
+            <if test="categoryId != null">
+                and p.category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                and p.status = #{status}
+            </if>
+        </where>
+        order by p.id desc
+    </select>
+
+    <select id="pageQueryForUser" resultType="com.supermall.takeout.vo.ProductVO">
+        select p.*, c.name as category_name, m.shop_name as shop_name
+        from product p
+        left join category c on c.id = p.category_id
+        left join merchant m on m.id = p.merchant_id
+        <where>
+            p.status = 1
+            and m.status = 1
+            <if test="businessType != null">
+                and p.business_type = #{businessType}
+            </if>
+            <if test="merchantId != null">
+                and p.merchant_id = #{merchantId}
+            </if>
+            <if test="categoryId != null">
+                and p.category_id = #{categoryId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and p.name like concat('%', #{keyword}, '%')
+            </if>
+        </where>
+        order by p.sales desc, p.id desc
+    </select>
+
+    <select id="randomOnSale" resultType="com.supermall.takeout.vo.ProductVO">
+        select p.*, c.name as category_name, m.shop_name as shop_name
+        from product p
+        left join category c on c.id = p.category_id
+        left join merchant m on m.id = p.merchant_id
+        <where>
+            p.status = 1
+            and m.status = 1
+            <if test="businessType != null">
+                and p.business_type = #{businessType}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and p.name like concat('%', #{keyword}, '%')
+            </if>
+        </where>
+        order by rand()
+        limit #{limit}
+    </select>
+
+    <select id="listByCategoryId" resultType="Product">
+        select * from product
+        where category_id = #{categoryId} and merchant_id = #{merchantId}
+    </select>
+
+    <select id="countByCategoryId" resultType="int">
+        select count(*) from product where category_id = #{categoryId} and merchant_id = #{merchantId}
+    </select>
+
+    <update id="deductStock">
+        update product
+        set stock = stock - #{number}, update_time = now()
+        where id = #{id} and stock &gt;= #{number}
+    </update>
+
+    <update id="releaseStock">
+        update product
+        set stock = stock + #{number}, update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="addSales">
+        update product
+        set sales = sales + #{number}, update_time = now()
+        where id = #{id}
+    </update>
+
+    <select id="listAll" resultType="Product">
+        select * from product where status = 1
+    </select>
+</mapper>

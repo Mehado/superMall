@@ -1,0 +1,36 @@
+**/target/
+.idea
+*.iml
+*.class
+logs/
+**/logs/
+*.classpath
+*.factorypath
+*.project
+**/.settings/
+.claude
+
+# 环境变量（含 jasypt 主密码，绝不能提交；模板见 deploy/.env.example）
+.env
+
+# 前端
+node_modules/
+dist/
+.vite/
+*.local
+
+# ── 体积大 / 可再生的本地资源（不进仓库）─────────────────────────────
+# seed-mall-demo 的图片搜索缓存，重跑脚本会自动重建
+.seed-cache/
+# 图片原图留档（13MB，不打包不上屏，只作本地留档）
+frontend/photo/_source/
+
+# ── 第三方图片（许可状态不一：公开仓库不要放，本地跑不受影响）──────────
+# 演示商品/分类/banner 图（第三方素材）
+# ★ 已迁到 OSS：DB 与 sql/seed-mall-demo.sql 里存的是 OSS 绝对 URL，部署/迁移不需要这些文件。
+#   本地这份留作「离线开发 + 换 bucket 时重新上传」的源文件：
+#     node scripts/migrate-seed-images-to-oss.mjs --apply
+frontend/public/seed/
+# 首页字标后面的滚动图池（第三方素材；池子为空时前端自动不渲染滚动层）
+frontend/photo/marquee/
+frontend/photo/marquee-food/

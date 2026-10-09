@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallReviewImageMapper">
+
+    <insert id="batchInsert">
+        insert into mall_review_image (review_id, url, type, sort, create_time)
+        values
+        <foreach collection="images" item="i" separator=",">
+            (#{i.reviewId}, #{i.url}, #{i.type}, #{i.sort}, #{i.createTime})
+        </foreach>
+    </insert>
+
+    <select id="listByReviewIds" resultType="com.supermall.mall.entity.MallReviewImage">
+        select id, review_id, url, type, sort, create_time
+        from mall_review_image
+        where review_id in
+        <foreach collection="reviewIds" item="rid" open="(" separator="," close=")">
+            #{rid}
+        </foreach>
+        order by review_id asc, type asc, sort asc, id asc
+    </select>
+
+    <delete id="deleteByReviewId">
+        delete from mall_review_image where review_id = #{reviewId}
+    </delete>
+</mapper>

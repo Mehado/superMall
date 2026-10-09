@@ -1,0 +1,37 @@
+# ============================================================
+# superMall 后端镜像（外卖 / 电商共用）
+# ------------------------------------------------------------
+# 通过 build arg 选择要构建的模块：
+#   docker build -f deploy/Dockerfile.backend --build-arg MODULE=superMall-takeout .
+#   docker build -f deploy/Dockerfile.backend --build-arg MODULE=superMall-mall .
+#
+# 多阶段：Maven 构建 → JRE 运行。这样镜像里不需要装 Maven，也不会带源码。
+# ============================================================
+
+# ---------- 构建阶段 ----------
+FROM maven:3.9-eclipse-temurin-21 AS build
+ARG MODULE=superMall-mall
+WORKDIR /build
+
+# 先只拷 pom，把依赖层缓存下来（改代码不会重新下依赖）
+COPY pom.xml .
+COPY superMall-common/pom.xml superMall-common/
+COPY superMall-takeout/pom.xml superMall-takeout/
+COPY superMall-mall/pom.xml superMall-mall/
+RUN mvn -q -B -pl "${MODULE}" -am dependency:go-offline || true
+
+# 再拷源码打包
+COPY . .
+RUN mvn -q -B -pl "${MODULE}" -am package -DskipTests
+
+# ---------- 运行阶段 ----------
+FROM eclipse-temurin:21-jre
+ARG MODULE=superMall-mall
+WORKDIR /app
+COPY --from=build "/build/${MODULE}/target/*.jar" app.jar
+
+# 时区 + JVM 参数（容器内存有限，给个保守的堆）
+ENV TZ=Asia/Shanghai \
+    JAVA_OPTS="-Xms256m -Xmx512m"
+EXPOSE 8080
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

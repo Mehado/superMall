@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallProductMapper">
+
+    <!-- 列表用：不查 detail（TEXT），避免把大字段拉进列表 -->
+    <sql id="listCols">
+        p.id, p.category_id, c.name as category_name,
+        p.brand_id, b.name as brand_name,
+        p.name, p.subtitle, p.main_image,
+        p.price_low, p.price_high, p.stock, p.sales, p.rating, p.review_count, p.good_rate,
+        p.status, p.sort, p.create_time, p.update_time
+    </sql>
+
+    <select id="getById" resultType="com.supermall.mall.entity.MallProduct">
+        select * from mall_product where id = #{id}
+    </select>
+
+    <select id="getDetailById" resultType="com.supermall.mall.vo.MallProductVO">
+        select <include refid="listCols"/>, p.detail
+        from mall_product p
+        left join mall_category c on c.id = p.category_id
+        left join mall_brand b on b.id = p.brand_id
+        where p.id = #{id}
+    </select>
+
+    <select id="page" resultType="com.supermall.mall.vo.MallProductVO">
+        select <include refid="listCols"/>
+        from mall_product p
+        left join mall_category c on c.id = p.category_id
+        left join mall_brand b on b.id = p.brand_id
+        <where>
+            <!-- 关键字：商品名 / 副标题 / 品牌名 / 分类名（品牌与分类已 LEFT JOIN，不再额外开销）
+                 注意括号：不加会把 or 泄漏到外层，导致筛选条件失效 -->
+            <if test="keyword != null and keyword != ''">
+                and (
+                    p.name like concat('%', #{keyword}, '%')
+                    or p.subtitle like concat('%', #{keyword}, '%')
+                    or b.name like concat('%', #{keyword}, '%')
+                    or c.name like concat('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="name != null and name != ''">
+                and p.name like concat('%', #{name}, '%')
+            </if>
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                and p.category_id in
+                <foreach collection="categoryIds" item="cid" open="(" close=")" separator=",">
+                    #{cid}
+                </foreach>
+            </if>
+            <if test="brandId != null">
+                and p.brand_id = #{brandId}
+            </if>
+            <!-- 价格区间：采用「区间有交集」语义（该商品有 SKU 落在这个价位），
+                 比「最低价落在区间内」更符合直觉 -->
+            <if test="minPrice != null">
+                and p.price_high &gt;= #{minPrice}
+            </if>
+            <if test="maxPrice != null">
+                and p.price_low &lt;= #{maxPrice}
+            </if>
+            <if test="status != null">
+                and p.status = #{status}
+            </if>
+        </where>
+        <!-- 排序白名单：用 <choose> 展开成固定 SQL 片段，不用 ${} 拼字符串 -->
+        <choose>
+            <when test='orderBy == "price_asc"'>order by p.price_low asc, p.id desc</when>
+            <when test='orderBy == "price_desc"'>order by p.price_low desc, p.id desc</when>
+            <when test='orderBy == "sales_desc"'>order by p.sales desc, p.id desc</when>
+            <when test='orderBy == "rating_desc"'>order by p.rating desc, p.id desc</when>
+            <when test='orderBy == "newest"'>order by p.create_time desc, p.id desc</when>
+            <otherwise>order by p.sort asc, p.id desc</otherwise>
+        </choose>
+    </select>
+
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallProduct"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_product
+            (category_id, brand_id, name, subtitle, main_image, detail,
+             price_low, price_high, stock, sales, rating, status, sort, create_time, update_time)
+        values
+            (#{categoryId}, #{brandId}, #{name}, #{subtitle}, #{mainImage}, #{detail},
+             #{priceLow}, #{priceHigh}, #{stock}, #{sales}, #{rating}, #{status}, #{sort}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="com.supermall.mall.entity.MallProduct">
+        update mall_product set
+            category_id = #{categoryId},
+            brand_id    = #{brandId},
+            name        = #{name},
+            subtitle    = #{subtitle},
+            main_image  = #{mainImage},
+            detail      = #{detail},
+            sort        = #{sort},
+            status      = #{status},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        update mall_product set status = #{status}, update_time = now() where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from mall_product where id = #{id}
+    </delete>
+
+    <!-- 由 SKU 重算冗余字段；只算启用的 SKU。COALESCE 兜住「一个 SKU 都没有」的中间态 -->
+    <update id="refreshAggregates">
+        update mall_product p
+        set p.price_low = coalesce((select min(s.price) from mall_sku s
+                                    where s.product_id = p.id and s.status = 1), 0),
+            p.price_high = coalesce((select max(s.price) from mall_sku s
+                                     where s.product_id = p.id and s.status = 1), 0),
+            p.stock = coalesce((select sum(s.stock) from mall_sku s
+                                where s.product_id = p.id and s.status = 1), 0),
+            p.update_time = now()
+        where p.id = #{productId}
+    </update>
+
+    <update id="incrementSales">
+        update mall_product
+        set sales = greatest(sales + #{delta}, 0), update_time = now()
+        where id = #{id}
+    </update>
+
+    <!-- 由评价重算：平均分 / 评价数 / 好评率（rating>=4）。无评价时的默认值与原口径一致 -->
+    <update id="refreshReviewAggregates">
+        update mall_product p
+        set p.rating = coalesce((select round(avg(r.rating), 2) from mall_review r
+                                 where r.product_id = p.id), 5.00),
+            p.review_count = (select count(*) from mall_review r where r.product_id = p.id),
+            p.good_rate = coalesce((select round(sum(case when r.rating &gt;= 4 then 1 else 0 end)
+                                                  / count(*) * 100, 2)
+                                    from mall_review r where r.product_id = p.id), 100.00),
+            p.update_time = now()
+        where p.id = #{productId}
+    </update>
+</mapper>

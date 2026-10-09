@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallBrandMapper">
+
+    <sql id="cols">
+        id, name, logo, description, sort, status, create_time, update_time
+    </sql>
+
+    <select id="getById" resultType="com.supermall.mall.entity.MallBrand">
+        select <include refid="cols"/> from mall_brand where id = #{id}
+    </select>
+
+    <select id="getByName" resultType="com.supermall.mall.entity.MallBrand">
+        select <include refid="cols"/> from mall_brand where name = #{name} limit 1
+    </select>
+
+    <select id="list" resultType="com.supermall.mall.entity.MallBrand">
+        select <include refid="cols"/> from mall_brand
+        <where>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%')
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by sort asc, id asc
+    </select>
+
+    <select id="listEnabled" resultType="com.supermall.mall.entity.MallBrand">
+        select <include refid="cols"/> from mall_brand where status = 1 order by sort asc, id asc
+    </select>
+
+    <select id="countProducts" resultType="int">
+        select count(*) from mall_product where brand_id = #{brandId}
+    </select>
+
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallBrand"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_brand (name, logo, description, sort, status, create_time, update_time)
+        values (#{name}, #{logo}, #{description}, #{sort}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="com.supermall.mall.entity.MallBrand">
+        update mall_brand
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="logo != null">logo = #{logo},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from mall_brand where id = #{id}
+    </delete>
+</mapper>

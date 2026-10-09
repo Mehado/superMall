@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallStatsMapper">
+
+    <!-- 看板卡片：一次查完，避免前端多次请求 -->
+    <select id="overview" resultType="com.supermall.mall.vo.MallStatsOverviewVO">
+        select
+            (select coalesce(sum(pay_amount), 0) from mall_order where pay_status = 'PAID') as total_sales,
+            (select count(*) from mall_order where pay_status = 'PAID') as paid_orders,
+            (select count(*) from mall_order) as total_orders,
+            (select coalesce(sum(pay_amount), 0) from mall_order
+             where pay_status = 'PAID' and date(pay_time) = curdate()) as today_sales,
+            (select count(*) from mall_order
+             where pay_status = 'PAID' and date(pay_time) = curdate()) as today_orders,
+            (select count(*) from sys_user) as member_count,
+            (select count(*) from mall_product where status = 1) as on_sale_products,
+            (select count(*) from mall_order where status = 'PENDING_DELIVERY') as pending_delivery,
+            (select count(*) from mall_refund where status = 'PENDING') as refunding,
+            (select count(*) from mall_review) as review_count
+    </select>
+
+    <!-- 按日/按月：只返回有成交的分组，空洞由服务层补 0 -->
+    <select id="salesTrendDay" resultType="com.supermall.mall.vo.MallSalesTrendVO">
+        select date_format(pay_time, '%Y-%m-%d') as date,
+               coalesce(sum(pay_amount), 0) as sales,
+               count(*) as orders
+        from mall_order
+        where pay_status = 'PAID' and pay_time &gt;= #{begin}
+        group by date_format(pay_time, '%Y-%m-%d')
+        order by date asc
+    </select>
+
+    <select id="salesTrendMonth" resultType="com.supermall.mall.vo.MallSalesTrendVO">
+        select date_format(pay_time, '%Y-%m') as date,
+               coalesce(sum(pay_amount), 0) as sales,
+               count(*) as orders
+        from mall_order
+        where pay_status = 'PAID' and pay_time &gt;= #{begin}
+        group by date_format(pay_time, '%Y-%m')
+        order by date asc
+    </select>
+
+    <!-- 品类占比：商品可能挂在 3 级分类下，向上归到根分类（最多 join 3 层，不用递归 CTE） -->
+    <select id="categorySales" resultType="com.supermall.mall.vo.MallCategorySalesVO">
+        select coalesce(c3.id, c2.id, c1.id)     as category_id,
+               coalesce(c3.name, c2.name, c1.name) as category_name,
+               coalesce(sum(oi.total_amount), 0)  as amount,
+               coalesce(sum(oi.number), 0)        as quantity
+        from mall_order_item oi
+        join mall_order o on o.id = oi.order_id and o.pay_status = 'PAID'
+        join mall_product p on p.id = oi.product_id
+        join mall_category c1 on c1.id = p.category_id
+        left join mall_category c2 on c2.id = c1.parent_id
+        left join mall_category c3 on c3.id = c2.parent_id
+        group by category_id, category_name
+        order by amount desc
+    </select>
+
+    <!-- 热销 TOP N：按下单件数排序 -->
+    <select id="topProducts" resultType="com.supermall.mall.vo.MallTopProductVO">
+        select oi.product_id as product_id,
+               oi.product_name as product_name,
+               coalesce(sum(oi.number), 0) as quantity,
+               coalesce(sum(oi.total_amount), 0) as amount
+        from mall_order_item oi
+        join mall_order o on o.id = oi.order_id and o.pay_status = 'PAID'
+        group by oi.product_id, oi.product_name
+        order by quantity desc, amount desc
+        limit #{limit}
+    </select>
+</mapper>

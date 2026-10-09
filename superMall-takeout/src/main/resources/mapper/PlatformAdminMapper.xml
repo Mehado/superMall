@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.PlatformAdminMapper">
+
+    <select id="getByUsername" resultType="com.supermall.takeout.entity.PlatformAdmin">
+        select * from platform_admin where username = #{username}
+    </select>
+
+    <select id="getById" resultType="com.supermall.takeout.entity.PlatformAdmin">
+        select * from platform_admin where id = #{id}
+    </select>
+
+    <update id="update" parameterType="com.supermall.takeout.entity.PlatformAdmin">
+        update platform_admin
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+</mapper>

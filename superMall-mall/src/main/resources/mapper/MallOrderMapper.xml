@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallOrderMapper">
+
+    <sql id="cols">
+        id, order_number, user_id, status, pay_status, pay_method,
+        total_amount, discount_amount, freight_amount, pay_amount,
+        receiver_name, receiver_phone, receiver_province, receiver_city,
+        receiver_district, receiver_area_code, receiver_detail,
+        remark, submit_token, cancel_reason, cancel_time,
+        pay_time, delivery_time, receive_time, expire_time, create_time, update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallOrder"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_order
+            (order_number, user_id, status, pay_status, pay_method,
+             total_amount, discount_amount, freight_amount, pay_amount,
+             receiver_name, receiver_phone, receiver_province, receiver_city,
+             receiver_district, receiver_area_code, receiver_detail,
+             remark, submit_token, expire_time, create_time, update_time)
+        values
+            (#{orderNumber}, #{userId}, #{status}, #{payStatus}, #{payMethod},
+             #{totalAmount}, #{discountAmount}, #{freightAmount}, #{payAmount},
+             #{receiverName}, #{receiverPhone}, #{receiverProvince}, #{receiverCity},
+             #{receiverDistrict}, #{receiverAreaCode}, #{receiverDetail},
+             #{remark}, #{submitToken}, #{expireTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getById" resultType="com.supermall.mall.entity.MallOrder">
+        select <include refid="cols"/> from mall_order where id = #{id}
+    </select>
+
+    <select id="getByNumber" resultType="com.supermall.mall.entity.MallOrder">
+        select <include refid="cols"/> from mall_order where order_number = #{orderNumber}
+    </select>
+
+    <select id="countByUserAndToken" resultType="int">
+        select count(*) from mall_order where user_id = #{userId} and submit_token = #{token}
+    </select>
+
+    <select id="page" resultType="com.supermall.mall.entity.MallOrder">
+        select <include refid="cols"/> from mall_order
+        <where>
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="status != null and status != ''">and status = #{status}</if>
+            <if test="orderNumber != null and orderNumber != ''">and order_number = #{orderNumber}</if>
+        </where>
+        order by create_time desc, id desc
+    </select>
+
+    <!-- 条件状态流转：where 里的 status = from 是并发安全的根本 -->
+    <update id="transitionStatus">
+        update mall_order
+        <set>
+            status = #{to},
+            <if test="update.payStatus != null">pay_status = #{update.payStatus},</if>
+            <if test="update.payMethod != null">pay_method = #{update.payMethod},</if>
+            <if test="update.cancelReason != null">cancel_reason = #{update.cancelReason},</if>
+            <if test="update.cancelTime != null">cancel_time = #{update.cancelTime},</if>
+            <if test="update.payTime != null">pay_time = #{update.payTime},</if>
+            <if test="update.deliveryTime != null">delivery_time = #{update.deliveryTime},</if>
+            <if test="update.receiveTime != null">receive_time = #{update.receiveTime},</if>
+            update_time = now()
+        </set>
+        where id = #{id} and status = #{from}
+    </update>
+
+    <update id="cancelIfPendingPayment">
+        update mall_order
+        set status = 'CANCELLED',
+            cancel_reason = #{reason},
+            cancel_time = #{now},
+            update_time = now()
+        where id = #{id} and status = 'PENDING_PAYMENT'
+    </update>
+
+    <update id="markPaidIfPending">
+        update mall_order
+        set status = 'PENDING_DELIVERY',
+            pay_status = 'PAID',
+            pay_time = #{payTime},
+            pay_method = #{payMethod},
+            update_time = now()
+        where order_number = #{orderNumber} and status = 'PENDING_PAYMENT'
+    </update>
+
+    <select id="listTimeoutPending" resultType="com.supermall.mall.entity.MallOrder">
+        select <include refid="cols"/> from mall_order
+        where status = 'PENDING_PAYMENT'
+          and expire_time is not null
+          and expire_time &lt; #{deadline}
+        order by id asc
+    </select>
+
+    <select id="countByStatus" resultType="int">
+        select count(*) from mall_order where status = #{status}
+    </select>
+</mapper>

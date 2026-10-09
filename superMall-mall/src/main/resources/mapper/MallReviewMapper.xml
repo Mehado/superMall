@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallReviewMapper">
+
+    <!-- 评价列表统一列：带商品快照（订单明细）与昵称 -->
+    <sql id="voCols">
+        r.id, r.product_id, r.sku_id, r.order_item_id, r.rating, r.content,
+        r.anonymous, r.follow_content, r.follow_time, r.create_time,
+        oi.product_name, oi.image as product_image, oi.spec_text,
+        coalesce(u.nickname, u.username) as nickname
+    </sql>
+
+    <sql id="voFrom">
+        from mall_review r
+        left join mall_order_item oi on oi.id = r.order_item_id
+        left join sys_user u on u.id = r.user_id
+    </sql>
+
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallReview"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_review
+            (order_id, order_number, order_item_id, user_id, product_id, sku_id,
+             rating, content, anonymous, create_time, update_time)
+        values
+            (#{orderId}, #{orderNumber}, #{orderItemId}, #{userId}, #{productId}, #{skuId},
+             #{rating}, #{content}, #{anonymous}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getById" resultType="com.supermall.mall.entity.MallReview">
+        select * from mall_review where id = #{id}
+    </select>
+
+    <select id="getByOrderItemId" resultType="com.supermall.mall.entity.MallReview">
+        select * from mall_review where order_item_id = #{orderItemId}
+    </select>
+
+    <select id="listByOrderId" resultType="com.supermall.mall.entity.MallReview">
+        select * from mall_review where order_id = #{orderId} order by id asc
+    </select>
+
+    <select id="listByOrderItemIds" resultType="com.supermall.mall.entity.MallReview">
+        select * from mall_review
+        where order_item_id in
+        <foreach collection="orderItemIds" item="oid" open="(" separator="," close=")">
+            #{oid}
+        </foreach>
+    </select>
+
+    <!-- 商品详情页：某商品的评价分页 -->
+    <select id="pageByProduct" resultType="com.supermall.mall.vo.MallReviewVO">
+        select <include refid="voCols"/>
+        <include refid="voFrom"/>
+        where r.product_id = #{productId}
+        <if test="rating != null">
+            and r.rating = #{rating}
+        </if>
+        <if test="hasImage != null and hasImage == true">
+            and exists (select 1 from mall_review_image i where i.review_id = r.id)
+        </if>
+        order by r.create_time desc, r.id desc
+    </select>
+
+    <!-- 我的评价 -->
+    <select id="pageByUser" resultType="com.supermall.mall.vo.MallReviewVO">
+        select <include refid="voCols"/>
+        <include refid="voFrom"/>
+        where r.user_id = #{userId}
+        order by r.create_time desc, r.id desc
+    </select>
+
+    <!-- 运营后台 -->
+    <select id="pageByAdmin" resultType="com.supermall.mall.vo.MallReviewVO">
+        select <include refid="voCols"/>
+        <include refid="voFrom"/>
+        <where>
+            <if test="productId != null">and r.product_id = #{productId}</if>
+            <if test="userId != null">and r.user_id = #{userId}</if>
+            <if test="rating != null">and r.rating = #{rating}</if>
+        </where>
+        order by r.create_time desc, r.id desc
+    </select>
+
+    <!-- 追评：follow_time is null 保证只能追评一次 -->
+    <update id="updateFollow">
+        update mall_review
+        set follow_content = #{content},
+            follow_time = #{followTime},
+            update_time = now()
+        where id = #{id} and follow_time is null
+    </update>
+
+    <delete id="deleteById">
+        delete from mall_review where id = #{id}
+    </delete>
+
+    <select id="countByProduct" resultType="int">
+        select count(*) from mall_review where product_id = #{productId}
+    </select>
+
+    <select id="avgRatingByProduct" resultType="java.math.BigDecimal">
+        select round(avg(rating), 2) from mall_review where product_id = #{productId}
+    </select>
+
+    <select id="countGoodByProduct" resultType="int">
+        select count(*) from mall_review where product_id = #{productId} and rating &gt;= 4
+    </select>
+
+    <select id="distributionByProduct" resultType="com.supermall.mall.vo.MallReviewStatsVO$StarCount">
+        select rating as star, count(*) as count
+        from mall_review
+        where product_id = #{productId}
+        group by rating
+        order by rating desc
+    </select>
+</mapper>

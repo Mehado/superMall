@@ -1,0 +1,22 @@
+{
+  "name": "supermall-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "superMall 一体化前端：电商商城端 + 电商运营后台 + 外卖用户端 + 外卖商家端 + 外卖骑手端 + 外卖平台运营端，六端合一（只用前端，不写后端）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "pinia": "^2.3.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.0.7"
+  }
+}

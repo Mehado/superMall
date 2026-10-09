@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallSkuSpecMapper">
+
+    <select id="listBySkuIds" resultType="com.supermall.mall.entity.MallSkuSpec">
+        select id, sku_id, spec_id, spec_value_id
+        from mall_sku_spec
+        where sku_id in
+        <foreach collection="skuIds" item="sid" open="(" close=")" separator=",">
+            #{sid}
+        </foreach>
+    </select>
+
+    <insert id="insertBatch">
+        insert into mall_sku_spec (sku_id, spec_id, spec_value_id) values
+        <foreach collection="list" item="it" separator=",">
+            (#{it.skuId}, #{it.specId}, #{it.specValueId})
+        </foreach>
+    </insert>
+
+    <delete id="deleteBySkuIds">
+        delete from mall_sku_spec where sku_id in
+        <foreach collection="skuIds" item="sid" open="(" close=")" separator=",">
+            #{sid}
+        </foreach>
+    </delete>
+
+    <!-- 按商品删：先子查询出该商品的所有 sku -->
+    <delete id="deleteByProductId">
+        delete from mall_sku_spec
+        where sku_id in (select id from mall_sku where product_id = #{productId})
+    </delete>
+</mapper>

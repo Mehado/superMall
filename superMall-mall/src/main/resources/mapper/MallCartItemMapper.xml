@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallCartItemMapper">
+
+    <resultMap id="cartItemMap" type="com.supermall.mall.entity.MallCartItem">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="productId" column="product_id"/>
+        <result property="skuId" column="sku_id"/>
+        <result property="number" column="number"/>
+        <result property="selected" column="selected"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="getByUserAndSku" resultMap="cartItemMap">
+        select * from mall_cart_item where user_id = #{userId} and sku_id = #{skuId}
+    </select>
+
+    <select id="getById" resultMap="cartItemMap">
+        select * from mall_cart_item where id = #{id}
+    </select>
+
+    <!-- 加购：唯一键 (user_id, sku_id) 命中就累加。
+         LEAST(..., stock) 保证不会超过库存；stock 由服务层传入（已在同一事务里读过 SKU）。
+         selected 置 1：刚加进来的商品默认勾选。 -->
+    <insert id="upsertAdd">
+        insert into mall_cart_item (user_id, product_id, sku_id, number, selected, create_time, update_time)
+        values (#{userId}, #{productId}, #{skuId}, #{number}, 1, now(), now())
+        on duplicate key update
+            number     = least(number + values(number), #{stock}),
+            product_id = values(product_id),
+            selected   = 1,
+            update_time = now()
+    </insert>
+
+    <update id="updateNumber">
+        update mall_cart_item
+        set number = #{number}, update_time = now()
+        where id = #{id} and user_id = #{userId}
+    </update>
+
+    <update id="updateSelected">
+        update mall_cart_item
+        set selected = #{selected}, update_time = now()
+        where id = #{id} and user_id = #{userId}
+    </update>
+
+    <update id="updateSelectedAll">
+        update mall_cart_item
+        set selected = #{selected}, update_time = now()
+        where user_id = #{userId}
+    </update>
+
+    <!-- 只勾选有效行：失效的不能被一键全选带进来 -->
+    <update id="updateSelectedValid">
+        update mall_cart_item ci
+        join mall_sku s on s.id = ci.sku_id and s.product_id = ci.product_id
+        join mall_product p on p.id = ci.product_id
+        set ci.selected = #{selected}, ci.update_time = now()
+        where ci.user_id = #{userId}
+          and p.status = 1
+          and s.status = 1
+          and s.stock &gt; 0
+    </update>
+
+    <delete id="deleteById">
+        delete from mall_cart_item where id = #{id} and user_id = #{userId}
+    </delete>
+
+    <delete id="deleteByIds">
+        delete from mall_cart_item
+        where user_id = #{userId} and id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteAll">
+        delete from mall_cart_item where user_id = #{userId}
+    </delete>
+
+    <!-- 失效 = 商品没了 / 下架 / SKU 没了 / SKU 停用 / 售罄 -->
+    <delete id="deleteInvalid">
+        delete ci from mall_cart_item ci
+        left join mall_product p on p.id = ci.product_id
+        left join mall_sku s on s.id = ci.sku_id and s.product_id = ci.product_id
+        where ci.user_id = #{userId}
+          and (p.id is null or p.status &lt;&gt; 1
+               or s.id is null or s.status &lt;&gt; 1 or s.stock &lt;= 0)
+    </delete>
+
+    <select id="countByUser" resultType="int">
+        select count(*) from mall_cart_item where user_id = #{userId}
+    </select>
+
+    <select id="countInvalidByUser" resultType="int">
+        select count(*)
+        from mall_cart_item ci
+        left join mall_product p on p.id = ci.product_id
+        left join mall_sku s on s.id = ci.sku_id and s.product_id = ci.product_id
+        where ci.user_id = #{userId}
+          and (p.id is null or p.status &lt;&gt; 1
+               or s.id is null or s.status &lt;&gt; 1 or s.stock &lt;= 0)
+    </select>
+
+    <!-- 购物车列表：价格实时取 mall_sku.price，不用加购时的快照。
+         规格文案用子查询 group_concat，避免在结果集里把 SKU 行数放大。 -->
+    <select id="listByUser" resultType="com.supermall.mall.vo.MallCartItemVO">
+        select ci.id,
+               ci.product_id   as productId,
+               ci.sku_id       as skuId,
+               ci.number,
+               ci.selected,
+               ci.create_time  as createTime,
+               ci.update_time  as updateTime,
+               p.name          as productName,
+               p.subtitle,
+               p.status        as productStatus,
+               s.status        as skuStatus,
+               s.sku_code      as skuCode,
+               s.price,
+               s.stock,
+               coalesce(s.image, p.main_image) as image,
+               (select group_concat(sv.value order by sp.sort separator ' / ')
+                from mall_sku_spec ss
+                join mall_spec sp on sp.id = ss.spec_id
+                join mall_spec_value sv on sv.id = ss.spec_value_id
+                where ss.sku_id = ci.sku_id) as specText
+        from mall_cart_item ci
+        left join mall_product p on p.id = ci.product_id
+        left join mall_sku s on s.id = ci.sku_id and s.product_id = ci.product_id
+        where ci.user_id = #{userId}
+        order by ci.update_time desc, ci.id desc
+    </select>
+
+    <!-- 已选中的行，下单用。字段与 listByUser 完全一致，只是多了 selected=1 -->
+    <select id="listSelectedByUser" resultType="com.supermall.mall.vo.MallCartItemVO">
+        select ci.id,
+               ci.product_id   as productId,
+               ci.sku_id       as skuId,
+               ci.number,
+               ci.selected,
+               ci.create_time  as createTime,
+               ci.update_time  as updateTime,
+               p.name          as productName,
+               p.subtitle,
+               p.status        as productStatus,
+               s.status        as skuStatus,
+               s.sku_code      as skuCode,
+               s.price,
+               s.stock,
+               coalesce(s.image, p.main_image) as image,
+               (select group_concat(sv.value order by sp.sort separator ' / ')
+                from mall_sku_spec ss
+                join mall_spec sp on sp.id = ss.spec_id
+                join mall_spec_value sv on sv.id = ss.spec_value_id
+                where ss.sku_id = ci.sku_id) as specText
+        from mall_cart_item ci
+        left join mall_product p on p.id = ci.product_id
+        left join mall_sku s on s.id = ci.sku_id and s.product_id = ci.product_id
+        where ci.user_id = #{userId} and ci.selected = 1
+        order by ci.update_time desc, ci.id desc
+    </select>
+</mapper>

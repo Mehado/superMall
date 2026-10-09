@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.DeliverymanMapper">
+
+    <insert id="insert" parameterType="Deliveryman" useGeneratedKeys="true" keyProperty="id">
+        insert into deliveryman (username, password, name, phone, status, create_time, update_time)
+        values (#{username}, #{password}, #{name}, #{phone}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getByUsername" resultType="Deliveryman">
+        select * from deliveryman where username = #{username}
+    </select>
+
+    <select id="getById" resultType="Deliveryman">
+        select * from deliveryman where id = #{id}
+    </select>
+
+    <update id="update" parameterType="Deliveryman">
+        update deliveryman
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 平台运营：骑手列表 -->
+    <select id="pageByCondition" resultType="Deliveryman">
+        select id, username, name, phone, status, create_time, update_time
+        from deliveryman
+        <where>
+            <if test="status != null">and status = #{status}</if>
+            <if test="keyword != null and keyword != ''">
+                and (name like concat('%', #{keyword}, '%')
+                     or username like concat('%', #{keyword}, '%')
+                     or phone like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+    <update id="updateStatus">
+        update deliveryman set status = #{status}, update_time = now() where id = #{id}
+    </update>
+
+    <select id="countByStatus" resultType="int">
+        select count(*) from deliveryman
+        <where>
+            <if test="status != null">status = #{status}</if>
+        </where>
+    </select>
+</mapper>

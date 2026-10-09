@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!--
+  注意：操作的是【共享表】sys_user（外卖板块也在这张表上读写）。
+  这里只做查/插，不加字段、不改语义，保证外卖服务零感知。
+  User 实体来自共享模块 superMall-common（靠 type-aliases-package 配了 com.supermall.entity）。
+-->
+<mapper namespace="com.supermall.mall.mapper.MallUserMapper">
+
+    <insert id="insert" parameterType="com.supermall.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into sys_user (username, password, nickname, phone, avatar, status, create_time, update_time)
+        values (#{username}, #{password}, #{nickname}, #{phone}, #{avatar}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getByUsername" resultType="com.supermall.entity.User">
+        select * from sys_user where username = #{username}
+    </select>
+
+    <select id="getById" resultType="com.supermall.entity.User">
+        select * from sys_user where id = #{id}
+    </select>
+
+    <!-- 买家改自己的资料：只动非 null 字段，避免“只改头像”把昵称手机号冲掉 -->
+    <update id="updateProfile" parameterType="com.supermall.entity.User">
+        update sys_user
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+</mapper>

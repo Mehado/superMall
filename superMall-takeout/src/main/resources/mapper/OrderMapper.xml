@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.OrderMapper">
+
+    <insert id="insert" parameterType="Orders" useGeneratedKeys="true" keyProperty="id">
+        insert into orders
+        (number, submit_token, user_id, merchant_id, address_id, status, pay_status, pay_method, amount, delivery_fee,
+         remark, consignee, phone, address, order_time, checkout_time, estimated_delivery_time, create_time, update_time)
+        values
+        (#{number}, #{submitToken}, #{userId}, #{merchantId}, #{addressId}, #{status}, #{payStatus}, #{payMethod}, #{amount}, #{deliveryFee},
+         #{remark}, #{consignee}, #{phone}, #{address}, #{orderTime}, #{checkoutTime}, #{estimatedDeliveryTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getById" resultType="Orders">
+        select * from orders where id = #{id}
+    </select>
+
+    <select id="getByNumber" resultType="Orders">
+        select * from orders where number = #{number}
+    </select>
+
+    <update id="update" parameterType="Orders">
+        update orders
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="payStatus != null">pay_status = #{payStatus},</if>
+            <if test="payMethod != null">pay_method = #{payMethod},</if>
+            <if test="checkoutTime != null">checkout_time = #{checkoutTime},</if>
+            <if test="cancelTime != null">cancel_time = #{cancelTime},</if>
+            <if test="cancelReason != null">cancel_reason = #{cancelReason},</if>
+            <if test="deliveryTime != null">delivery_time = #{deliveryTime},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="pageQuery" resultType="Orders">
+        select * from orders
+        <where>
+            <if test="merchantId != null">
+                and merchant_id = #{merchantId}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="number != null and number != ''">
+                and number like concat('%', #{number}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                and phone like concat('%', #{phone}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="beginTime != null">
+                and order_time &gt;= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                and order_time &lt;= #{endTime}
+            </if>
+        </where>
+        order by order_time desc
+    </select>
+
+    <select id="countByUserAndToken" resultType="int">
+        select count(id) from orders where user_id = #{userId} and submit_token = #{token}
+    </select>
+
+    <select id="countByStatus" resultType="int">
+        select count(id) from orders where merchant_id = #{merchantId} and status = #{status}
+    </select>
+
+    <select id="getByStatusAndOrderTimeLT" resultType="Orders">
+        select * from orders where status = #{status} and order_time &lt; #{orderTime}
+    </select>
+
+    <update id="cancelByIdIfPendingPayment">
+        update orders
+        set status = 'CANCELLED',
+            cancel_reason = #{reason},
+            cancel_time = #{now},
+            update_time = now()
+        where id = #{id} and status = 'PENDING_PAYMENT'
+    </update>
+
+    <update id="transitionStatus">
+        update orders
+        <set>
+            status = #{to},
+            <if test="orders.payStatus != null">pay_status = #{orders.payStatus},</if>
+            <if test="orders.cancelReason != null">cancel_reason = #{orders.cancelReason},</if>
+            <if test="orders.cancelTime != null">cancel_time = #{orders.cancelTime},</if>
+            <if test="orders.deliveryTime != null">delivery_time = #{orders.deliveryTime},</if>
+            update_time = now()
+        </set>
+        where id = #{id} and status = #{from}
+    </update>
+
+    <update id="markPaidIfPending">
+        update orders
+        set status = 'PAID',
+            pay_status = 'PAID',
+            checkout_time = #{checkoutTime},
+            pay_method = #{payMethod},
+            update_time = now()
+        where number = #{orderNumber} and status = 'PENDING_PAYMENT'
+    </update>
+
+    <select id="sumAmountByMerchant" resultType="java.lang.Double">
+        select sum(amount) from orders
+        <where>
+            merchant_id = #{merchantId}
+            and status not in ('CANCELLED', 'PENDING_PAYMENT')
+            <if test="begin != null">
+                and order_time &gt;= #{begin}
+            </if>
+            <if test="end != null">
+                and order_time &lt; #{end}
+            </if>
+        </where>
+    </select>
+
+    <select id="countByMerchantAndTime" resultType="int">
+        select count(id) from orders
+        <where>
+            merchant_id = #{merchantId}
+            and status not in ('CANCELLED', 'PENDING_PAYMENT')
+            <if test="begin != null">
+                and order_time &gt;= #{begin}
+            </if>
+            <if test="end != null">
+                and order_time &lt; #{end}
+            </if>
+        </where>
+    </select>
+</mapper>

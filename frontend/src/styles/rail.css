@@ -1,0 +1,288 @@
+/* ============================================================================
+   rail.css —— 左侧竖向导航栏（商城端 + 外卖端共用）
+
+   为什么单独一个文件、而不是留在 mall.css 里：
+     这个左栏现在同时服务两套设计系统。mall.css 的全部令牌都定义在
+     `html.theme-mall` 下，而那个 class 只对 /shop* 生效 —— 外卖页面拿不到
+     `var(--m-ink)` 之类的值，左栏会直接塌掉。所以这里让它**自带一套令牌**，
+     挂在自己的根元素上，谁用都不会缺变量。
+
+   类名不用 m- 前缀，因为它已经不属于「电商专属」了。
+   ========================================================================== */
+
+.navrail-root {
+  /* 默认（商城端）：暖白纸面 + 近黑墨色 + 紫色强调 */
+  --rail-bg: #ffffff;
+  --rail-bg-float: rgba(255, 255, 255, 0.94);
+  --rail-paper: #ffffff;
+  --rail-ink: #16130f;
+  --rail-taupe: #8a7c6b;
+  --rail-line: #e7e5e1;
+  --rail-line-2: #d7d4cf;
+  --rail-accent: #003de2;
+  --rail-accent-soft: #e8eeff;
+  --rail-accent-deep: #002fa8;
+  --rail-r-xs: 8px;
+  --rail-r-sm: 12px;
+  --rail-pill: 999px;
+  --rail-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+  /* 底色交给 AppBackdrop 的环境光，这里保持透明 */
+  background: transparent;
+}
+
+/* 外卖端：与商城同一套色调，强调色统一为 SuperMall 蓝 */
+.navrail-root--food {
+  --rail-accent: #003de2;
+  --rail-accent-soft: #e8eeff;
+  --rail-accent-deep: #002fa8;
+}
+
+/* ── 竖栏本体 ───────────────────────────────────────────── */
+.navrail {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 84px;
+  height: 100vh;
+  padding: 24px 0 32px;
+  border-right: 1px solid var(--rail-line);
+  /* 玻璃质感：让背景柔光透过来 */
+  background: rgba(255, 255, 255, 0.62);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+}
+/* 小 Logo：圆形、只有图标、没有文字 */
+.navrail-logo {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--rail-accent);
+  color: #fff;
+  flex-shrink: 0;
+}
+/* 换成 photo/logo 里的图后：去底色，圆角方形 + 完整显示 */
+.navrail-logo.has-img {
+  background: transparent;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.navrail-logo.has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+/* Logo 用单字标记时（如外卖的「外」） */
+.navrail-logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+.navrail-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  /* 在「顶部 Logo」与「底部登录」之间垂直居中 */
+  margin: auto 0;
+}
+/* 只有图标：文字走 .navrail-tip 的 hover 提示 */
+.navrail-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--rail-r-sm);
+  color: var(--rail-taupe);
+  transition: color 0.2s var(--rail-ease), background-color 0.2s var(--rail-ease);
+}
+/* 选中态只用「颜色变深」区分，不糊一个背景色块（对齐 shop.app 的做法） */
+.navrail-item:hover {
+  color: var(--rail-ink);
+}
+.navrail-item.active {
+  color: var(--rail-ink);
+}
+.navrail-ico {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+/* 底部账户：圆形头像，登录前是空圈 */
+.navrail-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--rail-accent-soft);
+  color: var(--rail-accent-deep);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+.navrail-avatar.is-guest {
+  background: transparent;
+  border: 1px solid var(--rail-line-2);
+  color: var(--rail-taupe);
+}
+/* 有头像时：去底色，图片铺满圆形 */
+.navrail-avatar.has-img {
+  background: transparent;
+  overflow: hidden;
+}
+.navrail-avatar.has-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* 鼠标移上去才出现的名称提示，浮在图标右侧 */
+.navrail-tip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  z-index: 60;
+  padding: 6px 12px;
+  border-radius: var(--rail-r-xs);
+  background: var(--rail-ink);
+  color: var(--rail-paper);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-5px);
+  transition: opacity 0.18s var(--rail-ease), transform 0.18s var(--rail-ease);
+}
+.navrail-item:hover .navrail-tip,
+.navrail-item:focus-visible .navrail-tip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+.navrail-badge {
+  position: absolute;
+  top: -6px;
+  right: -11px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--rail-pill);
+  background: var(--rail-ink);
+  color: var(--rail-paper);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.navrail-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+/* 跨端切换：用强调色浅底与普通导航区分开 */
+.navrail-switch {
+  background: var(--rail-accent-soft);
+  color: var(--rail-accent-deep);
+}
+.navrail-switch:hover {
+  background: var(--rail-accent);
+  color: #fff;
+}
+.navrail-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.navrail-main {
+  flex: 1;
+}
+
+/* 移动端：左侧栏翻成底部标签栏（风格提示第十四节「Header 简化」） */
+@media (max-width: 767px) {
+  .navrail-root {
+    display: block;
+  }
+  .navrail {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    gap: 0;
+    width: 100%;
+    height: auto;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-right: 0;
+    border-top: 1px solid var(--rail-line);
+    background: var(--rail-bg-float);
+    backdrop-filter: saturate(1.4) blur(16px);
+  }
+  .navrail-logo {
+    display: none;
+  }
+  .navrail-nav {
+    flex-direction: row;
+    flex: 1;
+    gap: 0;
+    justify-content: space-around;
+    margin: 0;
+  }
+  /* 触屏没有 hover，名称提示还原成常驻标签 */
+  .navrail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: auto;
+    min-width: 58px;
+    height: auto;
+    padding: 7px 2px;
+  }
+  .navrail-tip {
+    position: static;
+    padding: 0;
+    background: none;
+    color: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .navrail-item.active .navrail-tip {
+    font-weight: 700;
+  }
+  .navrail-foot {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+  }
+  .navrail-body {
+    padding-bottom: 68px;
+  }
+}

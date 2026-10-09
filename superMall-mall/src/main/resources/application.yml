@@ -1,0 +1,111 @@
+server:
+  # ⚠️ 电商板块独立服务，端口 8081；外卖服务是 8080，两者互不影响
+  port: 8081
+
+spring:
+  application:
+    name: superMall-mall
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: ${super-mall.datasource.driver-class-name}
+    # 与外卖【同一个库】：共享 sys_user / address 两张表；电商自己的表一律 mall_ 前缀
+    url: jdbc:mysql://${super-mall.datasource.host}:${super-mall.datasource.port}/${super-mall.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${super-mall.datasource.username}
+    password: ${super-mall.datasource.password}
+    druid:
+      initial-size: 5
+      min-idle: 10
+      max-active: 20
+      max-wait: 60000
+
+  # 与外卖共用同一个 Redis 实例；电商的 key 一律 mall: 前缀，不会串
+  data:
+    redis:
+      host: ${super-mall.redis.host}
+      port: ${super-mall.redis.port}
+      database: ${super-mall.redis.database}
+      password: ${super-mall.redis.password}
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm
+    time-zone: Asia/Shanghai
+
+mybatis:
+  # 电商自己的 Mapper XML（与外卖的 mapper/*.xml 同名也不冲突：两个服务各自加载自己的 classpath）
+  mapper-locations: classpath:mapper/*.xml
+  # 同时登记共享实体（com.supermall.entity.User）与电商自己的实体
+  type-aliases-package: com.supermall.mall.entity,com.supermall.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.supermall.mall: debug
+    com.supermall.mall.mapper: debug
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+super-mall:
+  jwt:
+    # ⚠️ 与外卖【同一把 user 密钥 + 同一个头名 token】：
+    #    这样同一个账号在哪边登录，token 在另一边都有效（共享账号体系）
+    user-secret-key: ENC(E6xU9um8858gVSngJ4Ij7QNsF7GT6IJura9p2KMo7vYaMWpIvEOQk+Tj/LmMbbhVxHfq0gQxLflK4fOJsmCk+zPMgNJULtKV8MHjlkPXNDE=)
+    user-ttl: 7200000
+    user-token-name: token
+  # 电商板块独有的管理员 JWT（独立密钥 + 独立头名，与外卖不通用）
+  mall-jwt:
+    admin-secret-key: ENC(GM/+ajuE14ZG+xAmANTa1pYMJEnHh0XUNq42FExoVToZBC+o1K+id0U9Mzm9Tf2ou2Bv/pvfo4YaDdsKZ506Pdroo/CZdQy/7E6j8iXczzj5DvzD5We9zYiasvbVLUB+i5B2QLEwn2KMWJRsiPnVXw==)
+    admin-ttl: 7200000
+    admin-token-name: mall-admin-token
+
+  # 图形验证码（与外卖同一套配置项；key 前缀在代码里是 mall:captcha:）
+  captcha:
+    enabled: true
+    ttl-seconds: 120
+    length: 4
+    width: 132
+    height: 44
+    key-prefix: "mall:captcha:"
+    email-extra-domains: ""
+
+  validation:
+    email-extra-domains: ""
+
+  # P4 订单：支付超时自动关单 / 运费（自营，默认包邮）
+  order:
+    pay-timeout-minutes: 15
+    freight-amount: 0.00
+
+  # 商品图片存 OSS（P1 多图上传用）
+  alioss:
+    endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
+    access-key-id: ENC(N6z3T8k5OhLLAnoRCesaPypO2AITUiJFhol8S98cX1yetCJva4Y3D/frkgss5LdEDAiR6JL9kP7VbXkWdWvUwA==)
+    access-key-secret: ENC(BPRPYvvZ6d6pQUauGmUezgcTRwQX+8qwaUbqaQ+iZslgAfwdh7XEIKwwcobvnU9qV/zsc80nRs6is6Fzojifnw==)
+    bucket-name: ${OSS_BUCKET:mehado-java}
+    # ⚠️ 与外卖的 supermall/products/ 分开，便于区分与单独清理
+    dir: supermall/mall/
+    # 头像目录（买家上传头像用，与商品图分开）
+    avatar-dir: supermall/avatars/
+
+# 配置加密：主密码只从环境变量读取（与外卖共用同一个 JASYPT_ENCRYPTOR_PASSWORD）
+jasypt:
+  encryptor:
+    password: ${JASYPT_ENCRYPTOR_PASSWORD}
+    algorithm: PBEWITHHMACSHA512ANDAES_256
+    iv-generator-classname: org.jasypt.iv.RandomIvGenerator

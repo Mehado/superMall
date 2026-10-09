@@ -1,0 +1,19 @@
+super-mall:
+  # 敏感项（账号/密码）以 jasypt ENC(...) 密文写入；主机端口等非敏感项仍可用环境变量覆盖
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: ${MYSQL_HOST:localhost}
+    port: ${MYSQL_PORT:3306}
+    database: ${MYSQL_DATABASE:supermall}
+    username: ENC(TVygDk/xxhwWvwCmXiPw1CzUiqaM/xvkrZDV5ZP/JDLQ5uZqKHoULYov9oohP5Sj)
+    password: ENC(RSDz2yd57hAhPawr/9GzJddm5cnMDHGMLUR7GfPl3CWRRUyARAGScKMv47NdqCKi)
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    database: ${REDIS_DATABASE:0}
+    password: ENC(lmmR1cnw58eFKaqbfFUPeH/SunpmVWneCHapWZ/rmF7kQu1LwoaeDlqiBkICd6hZ)
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ENC(Z/ABPormtBU4OOd88brcR909KzdACQK+MzNQ7jsMkmrqqJMrZ0LgX+m7D9HLRw3M)
+    password: ENC(Z/ABPormtBU4OOd88brcR909KzdACQK+MzNQ7jsMkmrqqJMrZ0LgX+m7D9HLRw3M)

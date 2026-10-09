@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.SkuMapper">
+
+    <insert id="insert" parameterType="Sku" useGeneratedKeys="true" keyProperty="id">
+        insert into sku (product_id, merchant_id, name, price, stock, status, create_time, update_time)
+        values (#{productId}, #{merchantId}, #{name}, #{price}, #{stock}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <insert id="batchInsert">
+        insert into sku (product_id, merchant_id, name, price, stock, status, create_time, update_time)
+        values
+        <foreach collection="list" item="s" separator=",">
+            (#{s.productId}, #{s.merchantId}, #{s.name}, #{s.price}, #{s.stock}, #{s.status}, #{s.createTime}, #{s.updateTime})
+        </foreach>
+    </insert>
+
+    <update id="update" parameterType="Sku">
+        update sku
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id} and merchant_id = #{merchantId}
+    </update>
+
+    <delete id="deleteByProductId">
+        delete from sku where product_id = #{productId} and merchant_id = #{merchantId}
+    </delete>
+
+    <delete id="deleteByIds">
+        delete from sku where merchant_id = #{merchantId} and id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <select id="getById" resultType="Sku">
+        select * from sku where id = #{id}
+    </select>
+
+    <select id="listByProductId" resultType="Sku">
+        select * from sku where product_id = #{productId} order by id
+    </select>
+
+    <select id="listByProductIds" resultType="Sku">
+        select * from sku where product_id in
+        <foreach collection="productIds" item="pid" open="(" separator="," close=")">#{pid}</foreach>
+        order by product_id, id
+    </select>
+
+    <update id="deductStock">
+        update sku set stock = stock - #{number}, update_time = now()
+        where id = #{id} and stock &gt;= #{number}
+    </update>
+
+    <update id="releaseStock">
+        update sku set stock = stock + #{number}, update_time = now()
+        where id = #{id}
+    </update>
+
+    <select id="listAll" resultType="Sku">
+        select * from sku where status = 1
+    </select>
+</mapper>

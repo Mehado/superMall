@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallCategoryMapper">
+
+    <sql id="cols">
+        id, parent_id, level, name, icon, sort, status, create_time, update_time
+    </sql>
+
+    <select id="getById" resultType="com.supermall.mall.entity.MallCategory">
+        select <include refid="cols"/> from mall_category where id = #{id}
+    </select>
+
+    <select id="getByParentAndName" resultType="com.supermall.mall.entity.MallCategory">
+        select <include refid="cols"/> from mall_category
+        where parent_id = #{parentId} and name = #{name} limit 1
+    </select>
+
+    <select id="listAll" resultType="com.supermall.mall.entity.MallCategory">
+        select <include refid="cols"/> from mall_category
+        <where>
+            <if test="status != null">and status = #{status}</if>
+        </where>
+        order by level asc, sort asc, id asc
+    </select>
+
+    <select id="listChildren" resultType="com.supermall.mall.entity.MallCategory">
+        select <include refid="cols"/> from mall_category
+        where parent_id = #{parentId}
+        order by sort asc, id asc
+    </select>
+
+    <select id="countProducts" resultType="int">
+        select count(*) from mall_product where category_id = #{categoryId}
+    </select>
+
+    <!-- 前台分类导航的商品数（只算在售） -->
+    <select id="countOnSaleGroupByCategory" resultType="com.supermall.mall.vo.CategoryCountVO">
+        select category_id as categoryId, count(*) as total
+        from mall_product
+        where status = 1
+        group by category_id
+    </select>
+
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallCategory"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_category (parent_id, level, name, icon, sort, status, create_time, update_time)
+        values (#{parentId}, #{level}, #{name}, #{icon}, #{sort}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="com.supermall.mall.entity.MallCategory">
+        update mall_category
+        <set>
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="level != null">level = #{level},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="icon != null">icon = #{icon},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from mall_category where id = #{id}
+    </delete>
+</mapper>

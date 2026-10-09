@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.CategoryMapper">
+
+    <insert id="insert" parameterType="Category" useGeneratedKeys="true" keyProperty="id">
+        insert into category (merchant_id, business_type, name, sort, status, create_time, update_time)
+        values (#{merchantId}, #{businessType}, #{name}, #{sort}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="Category">
+        update category
+        <set>
+            <if test="businessType != null">business_type = #{businessType},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id} and merchant_id = #{merchantId}
+    </update>
+
+    <delete id="deleteById">
+        delete from category where id = #{id} and merchant_id = #{merchantId}
+    </delete>
+
+    <select id="getById" resultType="Category">
+        select * from category where id = #{id} and merchant_id = #{merchantId}
+    </select>
+
+    <select id="pageQuery" resultType="Category">
+        select * from category
+        <where>
+            merchant_id = #{merchantId}
+            <if test="businessType != null">
+                and business_type = #{businessType}
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%')
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by sort asc, id asc
+    </select>
+
+    <select id="listByMerchant" resultType="Category">
+        select * from category
+        where merchant_id = #{merchantId} and status = 1
+        order by sort asc, id asc
+    </select>
+
+    <select id="countByName" resultType="int">
+        select count(*) from category
+        where merchant_id = #{merchantId}
+        and business_type = #{businessType}
+        and name = #{name}
+        <if test="excludeId != null">
+            and id != #{excludeId}
+        </if>
+    </select>
+</mapper>

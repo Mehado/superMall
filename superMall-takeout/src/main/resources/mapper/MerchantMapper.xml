@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.MerchantMapper">
+
+    <insert id="insert" parameterType="Merchant" useGeneratedKeys="true" keyProperty="id">
+        insert into merchant (username, password, shop_name, logo, description, phone, address, status, create_time, update_time)
+        values (#{username}, #{password}, #{shopName}, #{logo}, #{description}, #{phone}, #{address}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <!-- 入驻申请专用：audit_status=0 待审核、status=0 未营业 -->
+    <insert id="insertApply" parameterType="Merchant" useGeneratedKeys="true" keyProperty="id">
+        insert into merchant
+            (username, password, shop_name, contact_name, phone, address, description, license_image,
+             status, business_status, audit_status, apply_time, create_time, update_time)
+        values
+            (#{username}, #{password}, #{shopName}, #{contactName}, #{phone}, #{address}, #{description}, #{licenseImage},
+             0, 1, 0, #{applyTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getByUsername" resultType="Merchant">
+        select * from merchant where username = #{username}
+    </select>
+
+    <select id="getById" resultType="Merchant">
+        select * from merchant where id = #{id}
+    </select>
+
+    <select id="listOpen" resultType="Merchant">
+        select id, shop_name, logo, description, phone, address, status, business_status
+        from merchant
+        where status = 1
+        <if test="keyword != null and keyword != ''">
+            and shop_name like concat('%', #{keyword}, '%')
+        </if>
+        order by id
+    </select>
+
+    <update id="update" parameterType="Merchant">
+        update merchant
+        <set>
+            <if test="shopName != null">shop_name = #{shopName},</if>
+            <if test="logo != null">logo = #{logo},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="getBusinessStatusById" resultType="java.lang.Integer">
+        select business_status from merchant where id = #{id}
+    </select>
+
+    <update id="updateBusinessStatus">
+        update merchant set business_status = #{businessStatus}, update_time = now() where id = #{id}
+    </update>
+
+    <!-- 驳回后重提：只有 audit_status=2 的行能被重置为待审核，并发重提只会成功一次 -->
+    <update id="reapply" parameterType="Merchant">
+        update merchant
+        set password      = #{password},
+            shop_name     = #{shopName},
+            contact_name  = #{contactName},
+            phone         = #{phone},
+            address       = #{address},
+            description   = #{description},
+            license_image = #{licenseImage},
+            status        = 0,
+            audit_status  = 0,
+            reject_reason = null,
+            apply_time    = #{applyTime},
+            audit_time    = null,
+            update_time   = now()
+        where id = #{id} and audit_status = 2
+    </update>
+
+    <!-- 平台运营：入驻申请列表（keyword 匹配店铺名 / 邮箱 / 手机号） -->
+    <select id="pageByAuditStatus" resultType="Merchant">
+        select * from merchant
+        <where>
+            <if test="auditStatus != null">and audit_status = #{auditStatus}</if>
+            <if test="keyword != null and keyword != ''">
+                and (shop_name like concat('%', #{keyword}, '%')
+                     or username like concat('%', #{keyword}, '%')
+                     or phone like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        order by
+            case audit_status when 0 then 0 else 1 end,
+            apply_time desc, id desc
+    </select>
+
+    <!-- 条件审核：where audit_status = 0 保证只有待审的能被审，重复审核返回 0 行 -->
+    <update id="audit">
+        update merchant
+        set audit_status  = #{auditStatus},
+            status        = #{status},
+            reject_reason = #{rejectReason},
+            audit_time    = #{auditTime},
+            update_time   = now()
+        where id = #{id} and audit_status = 0
+    </update>
+
+    <select id="countByAuditStatus" resultType="int">
+        select count(*) from merchant
+        <where>
+            <if test="auditStatus != null">audit_status = #{auditStatus}</if>
+        </where>
+    </select>
+</mapper>

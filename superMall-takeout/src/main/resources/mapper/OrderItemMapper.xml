@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.OrderItemMapper">
+
+    <insert id="batchInsert">
+        insert into order_item
+        (order_id, merchant_id, product_id, sku_id, product_name, sku_name, image, price, number, amount)
+        values
+        <foreach collection="list" item="it" separator=",">
+            (#{it.orderId}, #{it.merchantId}, #{it.productId}, #{it.skuId}, #{it.productName}, #{it.skuName},
+             #{it.image}, #{it.price}, #{it.number}, #{it.amount})
+        </foreach>
+    </insert>
+
+    <select id="listByOrderId" resultType="OrderItem">
+        select * from order_item where order_id = #{orderId} order by id
+    </select>
+
+    <select id="listByOrderIds" resultType="OrderItem">
+        select * from order_item where order_id in
+        <foreach collection="orderIds" item="oid" open="(" separator="," close=")">#{oid}</foreach>
+        order by order_id, id
+    </select>
+</mapper>

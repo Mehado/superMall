@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallFootprintMapper">
+
+    <!-- 幂等去重：同一用户同一商品只留一行，重复浏览累加次数 + 刷新时间 -->
+    <insert id="upsert">
+        insert into mall_footprint (user_id, product_id, visit_count, create_time, update_time)
+        values (#{userId}, #{productId}, 1, now(), now())
+        on duplicate key update
+            visit_count = visit_count + 1,
+            update_time = now()
+    </insert>
+
+    <select id="pageByUser" resultType="com.supermall.mall.entity.MallFootprint">
+        select id, user_id, product_id, visit_count, create_time, update_time
+        from mall_footprint
+        where user_id = #{userId}
+        order by update_time desc, id desc
+    </select>
+
+    <!-- 批量取商品卡片（不查 detail），避免在服务层 for 循环里 N+1 查库 -->
+    <select id="listProductCards" resultType="com.supermall.mall.vo.MallProductVO">
+        select p.id, p.category_id, c.name as category_name,
+               p.brand_id, b.name as brand_name,
+               p.name, p.subtitle, p.main_image,
+               p.price_low, p.price_high, p.stock, p.sales, p.rating,
+               p.status, p.sort, p.create_time, p.update_time
+        from mall_product p
+        left join mall_category c on c.id = p.category_id
+        left join mall_brand b on b.id = p.brand_id
+        where p.id in
+        <foreach collection="productIds" item="pid" open="(" close=")" separator=",">
+            #{pid}
+        </foreach>
+    </select>
+
+    <delete id="deleteByUserAndProduct">
+        delete from mall_footprint where user_id = #{userId} and product_id = #{productId}
+    </delete>
+
+    <delete id="deleteByUser">
+        delete from mall_footprint where user_id = #{userId}
+    </delete>
+</mapper>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallProductImageMapper">
+
+    <select id="listByProductId" resultType="com.supermall.mall.entity.MallProductImage">
+        select id, product_id, url, sort, create_time
+        from mall_product_image
+        where product_id = #{productId}
+        order by sort asc, id asc
+    </select>
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        insert into mall_product_image (product_id, url, sort, create_time) values
+        <foreach collection="list" item="it" separator=",">
+            (#{it.productId}, #{it.url}, #{it.sort}, #{it.createTime})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByProductId">
+        delete from mall_product_image where product_id = #{productId}
+    </delete>
+</mapper>

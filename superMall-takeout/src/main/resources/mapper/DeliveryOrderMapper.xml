@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.DeliveryOrderMapper">
+
+    <insert id="insert" parameterType="DeliveryOrder" useGeneratedKeys="true" keyProperty="id">
+        insert into delivery_order (order_id, merchant_id, deliveryman_id, status, accept_time, pickup_time, delivered_time, create_time, update_time)
+        values (#{orderId}, #{merchantId}, #{deliverymanId}, #{status}, #{acceptTime}, #{pickupTime}, #{deliveredTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getById" resultType="DeliveryOrder">
+        select * from delivery_order where id = #{id}
+    </select>
+
+    <select id="getByOrderId" resultType="DeliveryOrder">
+        select * from delivery_order where order_id = #{orderId}
+    </select>
+
+    <update id="update" parameterType="DeliveryOrder">
+        update delivery_order
+        <set>
+            <if test="deliverymanId != null">deliveryman_id = #{deliverymanId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="acceptTime != null">accept_time = #{acceptTime},</if>
+            <if test="pickupTime != null">pickup_time = #{pickupTime},</if>
+            <if test="deliveredTime != null">delivered_time = #{deliveredTime},</if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <update id="acceptIfWaiting">
+        update delivery_order
+        set deliveryman_id = #{deliverymanId},
+            status = 'ACCEPTED',
+            accept_time = #{now},
+            update_time = now()
+        where order_id = #{orderId} and status = 'WAITING'
+    </update>
+
+    <select id="pagePool" resultType="com.supermall.takeout.vo.DeliveryOrderVO">
+        select d.*, o.number as order_number, o.delivery_fee as delivery_fee,
+               m.shop_name as shop_name, m.phone as merchant_phone, m.address as pickup_address,
+               o.address as receiver_address, o.consignee as consignee, o.phone as phone
+        from delivery_order d
+        left join orders o on o.id = d.order_id
+        left join merchant m on m.id = d.merchant_id
+        where d.status = 'WAITING'
+        order by d.create_time asc
+    </select>
+
+    <select id="pageByDeliveryman" resultType="com.supermall.takeout.vo.DeliveryOrderVO">
+        select d.*, o.number as order_number, o.delivery_fee as delivery_fee,
+               m.shop_name as shop_name, m.phone as merchant_phone, m.address as pickup_address,
+               o.address as receiver_address, o.consignee as consignee, o.phone as phone
+        from delivery_order d
+        left join orders o on o.id = d.order_id
+        left join merchant m on m.id = d.merchant_id
+        <where>
+            d.deliveryman_id = #{deliverymanId}
+            <if test="dto.status != null and dto.status != ''">
+                and d.status = #{dto.status}
+            </if>
+        </where>
+        order by d.accept_time desc, d.id desc
+    </select>
+
+    <select id="countPoolWaiting" resultType="int">
+        select count(*) from delivery_order where status = 'WAITING'
+    </select>
+
+    <select id="countByDeliverymanAndStatus" resultType="int">
+        select count(*) from delivery_order where deliveryman_id = #{deliverymanId} and status = #{status}
+    </select>
+</mapper>

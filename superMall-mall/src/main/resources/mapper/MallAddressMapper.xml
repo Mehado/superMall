@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallAddressMapper">
+
+    <sql id="cols">
+        id, user_id, consignee, phone, province, city, district, area_code, detail, label,
+        is_default, create_time, update_time
+    </sql>
+
+    <select id="getById" resultType="com.supermall.entity.Address">
+        select <include refid="cols"/> from address where id = #{id}
+    </select>
+
+    <select id="listByUserId" resultType="com.supermall.entity.Address">
+        select <include refid="cols"/> from address
+        where user_id = #{userId}
+        order by is_default desc, update_time desc, id desc
+    </select>
+
+    <select id="countByUserId" resultType="int">
+        select count(*) from address where user_id = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="com.supermall.entity.Address" useGeneratedKeys="true" keyProperty="id">
+        insert into address (user_id, consignee, phone, province, city, district, area_code,
+                             detail, label, is_default, create_time, update_time)
+        values (#{userId}, #{consignee}, #{phone}, #{province}, #{city}, #{district}, #{areaCode},
+                #{detail}, #{label}, #{isDefault}, #{createTime}, #{updateTime})
+    </insert>
+
+    <!-- 全量更新：电商的地址表单每次提交完整字段（与 mall_product 同样的取舍）。
+         这样「从 areaCode 模式改回手工录入」时能真正把 area_code 清掉，
+         而不是留一个与新省市区不匹配的旧编码。 -->
+    <update id="update" parameterType="com.supermall.entity.Address">
+        update address
+        set consignee = #{consignee},
+            phone = #{phone},
+            province = #{province},
+            city = #{city},
+            district = #{district},
+            area_code = #{areaCode},
+            detail = #{detail},
+            label = #{label},
+            is_default = #{isDefault},
+            update_time = now()
+        where id = #{id} and user_id = #{userId}
+    </update>
+
+    <delete id="deleteById">
+        delete from address where id = #{id} and user_id = #{userId}
+    </delete>
+
+    <update id="clearDefault">
+        update address set is_default = 0 where user_id = #{userId}
+    </update>
+
+    <update id="setDefault">
+        update address set is_default = 1 where id = #{id} and user_id = #{userId}
+    </update>
+</mapper>

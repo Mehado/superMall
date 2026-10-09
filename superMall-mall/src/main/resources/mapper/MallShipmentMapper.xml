@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallShipmentMapper">
+
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallShipment"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_shipment
+            (order_id, order_number, company, tracking_no, ship_time, create_time, update_time)
+        values
+            (#{orderId}, #{orderNumber}, #{company}, #{trackingNo},
+             #{shipTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getByOrderId" resultType="com.supermall.mall.entity.MallShipment">
+        select id, order_id, order_number, company, tracking_no, ship_time, create_time, update_time
+        from mall_shipment
+        where order_id = #{orderId}
+    </select>
+
+    <select id="listByOrderIds" resultType="com.supermall.mall.entity.MallShipment">
+        select id, order_id, order_number, company, tracking_no, ship_time, create_time, update_time
+        from mall_shipment
+        where order_id in
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </select>
+</mapper>

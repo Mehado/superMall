@@ -1,0 +1,14 @@
+# 构建镜像时排除的内容（保持构建上下文小、避免把本地产物带进镜像）
+**/target
+**/node_modules
+**/dist
+**/.git
+**/.idea
+**/*.iml
+logs
+**/*.log
+docs/screenshots
+
+# 演示图已迁到 OSS（DB 存绝对 URL），不需要进镜像；原图留档也不进
+frontend/public/seed
+frontend/photo/_source

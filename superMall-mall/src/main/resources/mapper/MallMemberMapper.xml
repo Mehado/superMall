@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallMemberMapper">
+
+    <!-- 会员 + 统计（下单数 / 消费额 / 评价数）。单页最多 100 行，子查询可接受。 -->
+    <sql id="cols">
+        u.id, u.username, u.nickname, u.phone, u.avatar, u.status,
+        u.create_time, u.update_time,
+        (select count(*) from mall_order o where o.user_id = u.id) as order_count,
+        (select count(*) from mall_order o where o.user_id = u.id and o.pay_status = 'PAID') as paid_order_count,
+        (select coalesce(sum(o.pay_amount), 0) from mall_order o
+         where o.user_id = u.id and o.pay_status = 'PAID') as total_spent,
+        (select count(*) from mall_review r where r.user_id = u.id) as review_count,
+        (select max(o.pay_time) from mall_order o where o.user_id = u.id) as last_order_time
+    </sql>
+
+    <select id="page" resultType="com.supermall.mall.vo.MallMemberVO">
+        select <include refid="cols"/>
+        from sys_user u
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (u.username like concat('%', #{keyword}, '%')
+                     or u.nickname like concat('%', #{keyword}, '%')
+                     or u.phone like concat('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">
+                and u.status = #{status}
+            </if>
+        </where>
+        order by u.create_time desc, u.id desc
+    </select>
+
+    <select id="getById" resultType="com.supermall.mall.vo.MallMemberVO">
+        select <include refid="cols"/>
+        from sys_user u
+        where u.id = #{id}
+    </select>
+
+    <select id="countById" resultType="int">
+        select count(*) from sys_user where id = #{id}
+    </select>
+
+    <update id="updateStatus">
+        update sys_user
+        set status = #{status}, update_time = now()
+        where id = #{id}
+    </update>
+</mapper>

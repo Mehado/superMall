@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallOrderItemMapper">
+
+    <sql id="cols">
+        id, order_id, order_number, product_id, sku_id,
+        product_name, sku_code, image, spec_text, price, number, total_amount
+    </sql>
+
+    <insert id="batchInsert">
+        insert into mall_order_item
+            (order_id, order_number, product_id, sku_id,
+             product_name, sku_code, image, spec_text, price, number, total_amount)
+        values
+        <foreach collection="items" item="i" separator=",">
+            (#{i.orderId}, #{i.orderNumber}, #{i.productId}, #{i.skuId},
+             #{i.productName}, #{i.skuCode}, #{i.image}, #{i.specText},
+             #{i.price}, #{i.number}, #{i.totalAmount})
+        </foreach>
+    </insert>
+
+    <select id="listByOrderId" resultType="com.supermall.mall.entity.MallOrderItem">
+        select <include refid="cols"/> from mall_order_item
+        where order_id = #{orderId}
+        order by id asc
+    </select>
+
+    <select id="listByOrderIds" resultType="com.supermall.mall.entity.MallOrderItem">
+        select <include refid="cols"/> from mall_order_item
+        where order_id in
+        <foreach collection="orderIds" item="oid" open="(" separator="," close=")">
+            #{oid}
+        </foreach>
+        order by id asc
+    </select>
+</mapper>

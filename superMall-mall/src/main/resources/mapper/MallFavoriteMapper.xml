@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallFavoriteMapper">
+
+    <!-- INSERT IGNORE：靠唯一键 (user_id, product_id) 天然幂等。
+         不用「先查再插」—— 并发下两边都查到"没收藏"就会撞唯一键报错。 -->
+    <insert id="insertIgnore">
+        insert ignore into mall_favorite (user_id, product_id, create_time)
+        values (#{userId}, #{productId}, now())
+    </insert>
+
+    <delete id="delete">
+        delete from mall_favorite where user_id = #{userId} and product_id = #{productId}
+    </delete>
+
+    <select id="countByUserAndProduct" resultType="int">
+        select count(*) from mall_favorite where user_id = #{userId} and product_id = #{productId}
+    </select>
+
+    <select id="countByUser" resultType="int">
+        select count(*) from mall_favorite where user_id = #{userId}
+    </select>
+
+    <!-- 收藏列表：**不过滤 status** —— 商品下架了也要能看到并标灰，
+         否则用户会发现自己收藏的东西"凭空消失"了。 -->
+    <select id="pageProducts" resultType="com.supermall.mall.vo.MallProductVO">
+        select p.id, p.category_id, c.name as category_name,
+               p.brand_id, b.name as brand_name,
+               p.name, p.subtitle, p.main_image,
+               p.price_low, p.price_high, p.stock, p.sales, p.rating,
+               p.status, p.sort, p.create_time, p.update_time
+        from mall_favorite f
+        join mall_product p on p.id = f.product_id
+        left join mall_category c on c.id = p.category_id
+        left join mall_brand b on b.id = p.brand_id
+        where f.user_id = #{userId}
+        order by f.create_time desc, f.id desc
+    </select>
+</mapper>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallSkuMapper">
+
+    <sql id="cols">
+        id, product_id, sku_code, price, stock, sales, image, status, create_time, update_time
+    </sql>
+
+    <select id="getById" resultType="com.supermall.mall.entity.MallSku">
+        select <include refid="cols"/> from mall_sku where id = #{id}
+    </select>
+
+    <select id="listByProductId" resultType="com.supermall.mall.entity.MallSku">
+        select <include refid="cols"/> from mall_sku
+        where product_id = #{productId}
+        order by id asc
+    </select>
+
+    <!-- 单条插入：MySQL 多行 INSERT 时 JDBC 只可靠返回第一个自增 id，
+         而建 sku_spec 关联要用到 sku.id，所以逐条插 -->
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallSku"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_sku
+            (product_id, sku_code, price, stock, sales, image, status, create_time, update_time)
+        values
+            (#{productId}, #{skuCode}, #{price}, #{stock}, #{sales},
+             #{image}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <delete id="deleteByProductId">
+        delete from mall_sku where product_id = #{productId}
+    </delete>
+
+    <select id="listAll" resultType="com.supermall.mall.entity.MallSku">
+        select <include refid="cols"/> from mall_sku
+    </select>
+
+    <!-- 防超卖：库存够才扣，返回 0 表示不够（调用方抛异常，事务回滚） -->
+    <update id="deductStock">
+        update mall_sku
+        set stock = stock - #{number}, update_time = now()
+        where id = #{id} and stock &gt;= #{number}
+    </update>
+
+    <update id="releaseStock">
+        update mall_sku
+        set stock = stock + #{number}, update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="incrementSales">
+        update mall_sku
+        set sales = greatest(sales + #{delta}, 0), update_time = now()
+        where id = #{id}
+    </update>
+</mapper>

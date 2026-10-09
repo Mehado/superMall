@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- ① 根工程继承 Spring Boot 官方父 POM，借助它的 BOM 统一管理第三方依赖版本 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.1</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.mehado</groupId>
+    <artifactId>superMall</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>superMall</name>
+    <description>superMall 在线外卖商城：多商家 / 多用户 / 配送员，前后端分离</description>
+
+    <modules>
+        <!-- 唯一共享模块：横切能力 + 跨服务共享模型（User / Address / 登录 / 验证码 / 校验注解） -->
+        <module>superMall-common</module>
+        <!-- 外卖板块（点餐 + 配送） -->
+        <module>superMall-takeout</module>
+        <!-- 电商板块（独立服务，与外卖服务并存、互不影响） -->
+        <module>superMall-mall</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <!-- 业务栈版本统一在此维护 -->
+        <mybatis.spring>4.0.1</mybatis.spring>
+        <lombok>1.18.46</lombok>
+        <fastjson>2.0.62</fastjson>
+        <commons.lang3>3.20.0</commons.lang3>
+        <druid>1.2.28</druid>
+        <pagehelper>4.0.0</pagehelper>
+        <springdoc>3.0.3</springdoc>
+        <knife4j>4.4.0</knife4j>
+        <aspectj>1.9.25</aspectj>
+        <jjwt>0.13.0</jjwt>
+        <aliyun.sdk.oss>3.18.2</aliyun.sdk.oss>
+        <jakarta.xml.bind>4.0.2</jakarta.xml.bind>
+        <httpclient>4.5.14</httpclient>
+        <!-- 富文本 XSS 过滤（Jsoup Safelist）：商品详情 / 评价 / 店铺简介 -->
+        <jsoup>1.18.3</jsoup>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- 内部模块 -->
+            <dependency>
+                <groupId>com.mehado</groupId>
+                <artifactId>superMall-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mehado</groupId>
+                <artifactId>superMall-takeout</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mehado</groupId>
+                <artifactId>superMall-mall</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- 持久层 -->
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>${mybatis.spring}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>${druid}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.pagehelper</groupId>
+                <artifactId>pagehelper-spring-boot-starter</artifactId>
+                <version>${pagehelper}</version>
+            </dependency>
+
+            <!-- 工具 -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jsoup</groupId>
+                <artifactId>jsoup</artifactId>
+                <version>${jsoup}</version>
+            </dependency>
+
+            <!-- 接口文档 -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+                <version>${knife4j}</version>
+            </dependency>
+
+            <!-- AOP -->
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjrt</artifactId>
+                <version>${aspectj}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj}</version>
+            </dependency>
+
+            <!-- JWT -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- 阿里云 OSS：商品图片等静态资源放 OSS，方便项目转移 -->
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>${aliyun.sdk.oss}</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.xml.bind</groupId>
+                <artifactId>jakarta.xml.bind-api</artifactId>
+                <version>${jakarta.xml.bind}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- 配置加密工具：mvn jasypt:encrypt-value -Djasypt.plugin.value="明文"
+                 主密码从环境变量 JASYPT_ENCRYPTOR_PASSWORD 读取 -->
+            <plugin>
+                <groupId>com.github.ulisesbocchio</groupId>
+                <artifactId>jasypt-maven-plugin</artifactId>
+                <version>4.0.4</version>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

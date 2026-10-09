@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.mall.mapper.MallSpecValueMapper">
+
+    <select id="listBySpecIds" resultType="com.supermall.mall.entity.MallSpecValue">
+        select id, spec_id, value, sort, create_time
+        from mall_spec_value
+        where spec_id in
+        <foreach collection="specIds" item="sid" open="(" close=")" separator=",">
+            #{sid}
+        </foreach>
+        order by spec_id asc, sort asc, id asc
+    </select>
+
+    <insert id="insert" parameterType="com.supermall.mall.entity.MallSpecValue"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into mall_spec_value (spec_id, value, sort, create_time)
+        values (#{specId}, #{value}, #{sort}, #{createTime})
+    </insert>
+
+    <delete id="deleteBySpecIds">
+        delete from mall_spec_value where spec_id in
+        <foreach collection="specIds" item="sid" open="(" close=")" separator=",">
+            #{sid}
+        </foreach>
+    </delete>
+</mapper>

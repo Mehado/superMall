@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.supermall.takeout.mapper.CartMapper">
+
+    <insert id="insert" parameterType="Cart" useGeneratedKeys="true" keyProperty="id">
+        insert into cart (user_id, merchant_id, create_time, update_time)
+        values (#{userId}, #{merchantId}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="getByUserAndMerchant" resultType="Cart">
+        select * from cart where user_id = #{userId} and merchant_id = #{merchantId}
+    </select>
+
+    <delete id="deleteById">
+        delete from cart where id = #{id}
+    </delete>
+</mapper>
